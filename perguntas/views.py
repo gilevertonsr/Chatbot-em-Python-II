@@ -56,7 +56,7 @@ def getCODE():
 
 
 @csrf_protect
-def salvarNovo(request):
+def salvar_novo(request):
     code = getCODE()
     code_user = request.POST.get("code_user")
     active = 1
@@ -90,7 +90,7 @@ def edicao(request, id):
 
 
 @csrf_protect
-def salvarEdicao(request):
+def salvar_edicao(request):
     id = int(request.POST.get("id"))
     code_user = request.POST.get("code_user")
     code_relation = request.POST.get("code_relation")
@@ -121,7 +121,7 @@ def delecao(request, id):
 
 
 @csrf_protect
-def salvarDelecao(request):
+def salvar_delecao(request):
     id = int(request.POST.get("id"))
     code_user = request.POST.get("code_user")
     Pergunta.objects.filter(id=id).delete()
@@ -150,6 +150,129 @@ def questao(request, code_user, code_before, question):
             consulta = Pergunta.objects.filter(code_user=code_user, active=1)
     else:
         consulta = Pergunta.objects.filter(code_user=code_user, active=1)
+
+    nome = capturaNome()
+    idade = capturaIdade()
+    sexo = capturaSexo()
+    curso = capturaCurso()
+    periodo = capturaPeriodo()
+    matricula = capturaMatricula()
+
+    lista = list()
+    if len(sexo) > 0 and len(curso) > 0:
+        code = getCODE()
+        global codeUser
+        code_user = codeUser
+        active = 1
+
+        captura = Captura(
+            code=code,
+            code_user=code_user,
+            active=active,
+            name=nome,
+            age=idade,
+            sex=sexo.upper(),
+            curso=curso,
+            periodo=periodo,
+            matricula=matricula
+        )
+        captura.save()
+        lista.append({
+            'code_current': 0,
+            'code_user': code_user,
+            'code_before': code_before,
+            'question': question,
+            'input': question,
+            'output': 'Ok, entendi.'
+        })
+    else:
+        # controle de abreviações
+        qTemp = qTemp.replace('vc', 'voce')
+        qTemp = qTemp.replace('vcs', 'voces')
+        qTemp = qTemp.replace('eh', 'e')
+        qTemp = qTemp.replace('tb', 'tambem')
+        qTemp = qTemp.replace('tbm', 'tambem')
+        qTemp = qTemp.replace('oq', 'o que')
+        qTemp = qTemp.replace('dq', 'de que')
+        qTemp = qTemp.replace('td', 'tudo')
+        qTemp = qTemp.replace('pq', 'por que')
+
+        # cria uma lista com query da consulta
+
+        for x in consulta:
+            lista.append({
+                'code_current': x.code,
+                'code_user': x.code_user,
+                'code_before': code_before,
+                'question': x.question,
+                'input': question,
+                'output': x.answer
+            })
+
+            # remove acentuação e espaços
+            questao_recebida = unidecode(question)
+            questao_recebida.replace('?', '')
+            questao_recebida = questao_recebida.strip()
+            # coloca em minúsculas
+            questao_recebida = questao_recebida.lower()
+            # elimina as três últimas letras de cada palavra com tokenização
+            temp1 = questao_recebida.split(' ')
+            temp2 = list()
+            for x in temp1:
+                temp2.append(x)
+
+            questao_recebida = ' '.join(temp2)
+            # percorre a lista de registros econtrados
+            iguais = 0
+            code = ''
+            for x in lista:
+                # remove acentuação e espaços
+                questao_encontrada = unidecode(x['question'])
+                questao_encontrada = questao_encontrada.replace('?', '')
+                questao_encontrada = questao_encontrada.strip()
+                # coloca em minúsculas
+                questao_encontrada = questao_encontrada.lower()
+                # elimina as três últimas letras de cada palavra com tokenização
+                temp1 = questao_encontrada.split(' ')
+                temp2 = list()
+                for y in temp1:
+                    temp2.append(y)
+
+                questao_encontrada = ' '.join(temp2)
+                # cria uma lista para a questão recebida e uma para a questão encontrada
+                qrList = questao_recebida.split(' ')
+                qeList = questao_encontrada.split(' ')
+                # conta as palavras recebidas que coincidem com as palavras de cada questão encontrada
+                qtd = 0
+                for y in qrList:
+                    if y in qeList:
+                        qtd += 1
+
+                if qtd >= iguais and qtd > 0:
+                    iguais = qtd
+                    code = x['code_current']
+
+            if iguais == 0:
+                lista = list()
+                lista.append({
+                    'code_current': 0,
+                    'code_user': code_user,
+                    'code_before': code_before,
+                    'question': question,
+                    'input': question,
+                    'output': 'Desculpe, mas não sei informar.'
+                })
+
+            # deixa na lista somente a resposta correspondente
+            else:
+                correspondente = list()
+                for x in lista:
+                    if code == x['code_current']:
+                        correspondente.append(x)
+                        break
+                lista = correspondente
+
+        return JsonResponse(lista, safe=False)
 
 
 # capturas de informação
@@ -285,129 +408,10 @@ def capturaCurso():
 
 
 # buscar informações
-nome = capturaNome()
-idade = capturaIdade()
-sexo = capturaSexo()
-curso = capturaCurso()
-periodo = capturaPeriodo()
-matricula = capturaMatricula()
 
-# inserção de resultados da captura
-lista = list()
-if len(sexo) > 0 and len(curso) > 0:
-    code = getCODE()
-    global codeUser
-    code_user = codeUser
-    active = 1
 
-    captura = Captura(
-        code=code,
-        code_user=code_user,
-        active=active,
-        name=nome,
-        age=idade,
-        sex=sexo.upper(),
-        curso=curso,
-        periodo=periodo,
-        matricula=matricula
-    )
-    captura.save()
-    lista.append({
-        'code_current': 0,
-        'code_user': code_user,
-        'code_before': code_before,
-        'question': question,
-        'input': question,
-        'output': 'Ok, entendi.'
-    })
-else:
-    # controle de abreviações
-    qTemp = qTemp.replace('vc', 'voce')
-    qTemp = qTemp.replace('vcs', 'voces')
-    qTemp = qTemp.replace('eh', 'e')
-    qTemp = qTemp.replace('tb', 'tambem')
-    qTemp = qTemp.replace('tbm', 'tambem')
-    qTemp = qTemp.replace('oq', 'o que')
-    qTemp = qTemp.replace('dq', 'de que')
-    qTemp = qTemp.replace('td', 'tudo')
-    qTemp = qTemp.replace('pq', 'por que')
 
-    # cria uma lista com query da consulta
 
-    for x in consulta:
-        lista.append({
-            'code_current': x.code,
-            'code_user': x.code_user,
-            'code_before': code_before,
-            'question': x.question,
-            'input': question,
-            'output': x.answer
-        })
-
-        # remove acentuação e espaços
-        questao_recebida = unidecode(question)
-        questao_recebida.replace('?', '')
-        questao_recebida = questao_recebida.strip()
-        # coloca em minúsculas
-        questao_recebida = questao_recebida.lower()
-        # elimina as três últimas letras de cada palavra com tokenização
-        temp1 = questao_recebida.split(' ')
-        temp2 = list()
-        for x in temp1:
-            temp2.append(x)
-
-        questao_recebida = ' '.join(temp2)
-        # percorre a lista de registros econtrados
-        iguais = 0
-        code = ''
-        for x in lista:
-            # remove acentuação e espaços
-            questao_encontrada = unidecode(x['question'])
-            questao_encontrada = questao_encontrada.replace('?', '')
-            questao_encontrada = questao_encontrada.strip()
-            # coloca em minúsculas
-            questao_encontrada = questao_encontrada.lower()
-            # elimina as três últimas letras de cada palavra com tokenização
-            temp1 = questao_encontrada.split(' ')
-            temp2 = list()
-            for y in temp1:
-                temp2.append(y)
-
-            questao_encontrada = ' '.join(temp2)
-            # cria uma lista para a questão recebida e uma para a questão encontrada
-            qrList = questao_recebida.split(' ')
-            qeList = questao_encontrada.split(' ')
-            # conta as palavras recebidas que coincidem com as palavras de cada questão encontrada
-            qtd = 0
-            for y in qrList:
-                if y in qeList:
-                    qtd += 1
-
-            if qtd >= iguais and qtd > 0:
-                iguais = qtd
-                code = x['code_current']
-
-        if iguais == 0:
-            lista = list()
-            lista.append({
-                'code_current': 0,
-                'code_user': code_user,
-                'code_before': code_before,
-                'question': question,
-                'input': question,
-                'output': 'Desculpe, mas não sei informar.'
-            })
-
-        # deixa na lista somente a resposta correspondente
-        else:
-            correspondente = list()
-            for x in lista:
-                if code == x['code_current']:
-                    correspondente.append(x)
-                    break
-            lista = correspondente
-
-    return JsonResponse(lista, safe=False)
 
 
 def api(request, code_user):
