@@ -151,12 +151,12 @@ def questao(request, code_user, code_before, question):
     else:
         consulta = Pergunta.objects.filter(code_user=code_user, active=1)
 
-    nome = capturaNome()
-    idade = capturaIdade()
-    sexo = capturaSexo()
-    curso = capturaCurso()
-    periodo = capturaPeriodo()
-    matricula = capturaMatricula()
+    nome = captura_nome()
+    idade = captura_idade()
+    sexo = captura_sexo()
+    curso = captura_curso()
+    periodo = captura_periodo()
+    matricula = captura_matricula()
 
     lista = list()
     if len(sexo) > 0 and len(curso) > 0:
@@ -279,7 +279,7 @@ def questao(request, code_user, code_before, question):
 # idade
 
 
-def capturaIdade():
+def captura_idade():
     import re
     global qTemp
     idade = 0
@@ -299,7 +299,7 @@ def capturaIdade():
 
 # sexo
 
-def capturaSexo():
+def captura_sexo():
     global qTemp
     sexo = ''
     _qTemp = qTemp.replace(',', '').replace('.', '').replace(';', '').replace('!', '')
@@ -313,7 +313,7 @@ def capturaSexo():
 
 # nome
 
-def capturaNome():
+def captura_nome():
     global qTemp
     nome = ''
     return nome
@@ -321,7 +321,7 @@ def capturaNome():
 
 # periodo
 
-def capturaPeriodo():
+def captura_periodo():
     import re
     global qTemp
     periodo = 0
@@ -365,7 +365,7 @@ def capturaPeriodo():
 
 # matricula
 
-def capturaMatricula():
+def captura_matricula():
     import re
     global qTemp
     matricula = 0
@@ -390,7 +390,7 @@ def capturaMatricula():
 
 # curso
 
-def capturaCurso():
+def captura_curso():
     global qTemp
     curso = ''
     cursos = ['administracao', 'agronomia', 'arquitetura e urbanismo', 'ciencias contabeis', 'direito',
@@ -408,12 +408,6 @@ def capturaCurso():
 
 
 # buscar informações
-
-
-
-
-
-
 def api(request, code_user):
     titulo = 'API de Integração'
     usuario = Usuario.objects.filter(code=code_user)
