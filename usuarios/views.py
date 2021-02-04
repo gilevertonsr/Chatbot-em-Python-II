@@ -98,7 +98,7 @@ def edicao(request, id):
 	return render(request, 'edicaoUsuarios.html', {'titulo': titulo, 'usuarios': usuario, 'ok': ok})
 
 @csrf_protect
-def salvarEdicao(request):
+def salvar_edicao(request):
 	id = int(request.POST.get("id"))
 	code = request.POST.get("code")
 	active = int(request.POST.get("active"))
@@ -131,7 +131,7 @@ def delecao(request, id):
 	return render(request, 'delecaoUsuarios.html', {'titulo': titulo, 'usuarios': usuario, 'ok': ok})
 
 @csrf_protect
-def salvarDelecao(request):
+def salvar_delecao(request):
 	id = int(request.POST.get("id"))
 	code = request.POST.get("code")
 	Usuario.objects.filter(id=id).delete()

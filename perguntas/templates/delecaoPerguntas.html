@@ -46,7 +46,7 @@
 	<br>
 	<div class="container">
 		<h2>{{titulo}}</h2>
-		<form action="/perguntas/salvarDelecao/" method="POST" name="frmPerguntasDelecao">{% csrf_token %}
+		<form action="/perguntas/salvar_delecao/" method="POST" name="frmPerguntasDelecao">{% csrf_token %}
 			<input type="hidden" name="id" value="{{perguntas.id}}">
 			<input type="hidden" name="code_user" value="{{perguntas.code_user}}">
 			<div class="form-group">

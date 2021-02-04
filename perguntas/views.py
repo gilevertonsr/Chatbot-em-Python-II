@@ -42,7 +42,7 @@ def novo(request, code_user):
         return render(request, 'redirecionar.html', {'code_user': 0})
 
 
-def getCODE():
+def get_code():
     from datetime import datetime
     dataHora = datetime.now()
     code = str(dataHora.year)
@@ -57,7 +57,7 @@ def getCODE():
 
 @csrf_protect
 def salvar_novo(request):
-    code = getCODE()
+    code = get_code()
     code_user = request.POST.get("code_user")
     active = 1
     code_relation = request.POST.get("code_relation")
@@ -137,9 +137,7 @@ def chatbot(request, code_user):
     else:
         return render(request, 'redirecionar.html', {'code_user': 0})
 
-
 # nlp - processamento de linguagem natural
-
 
 def questao(request, code_user, code_before, question):
     question = question.replace('%20', ' ')
@@ -151,16 +149,122 @@ def questao(request, code_user, code_before, question):
     else:
         consulta = Pergunta.objects.filter(code_user=code_user, active=1)
 
-    nome = captura_nome()
-    idade = captura_idade()
-    sexo = captura_sexo()
-    curso = captura_curso()
-    periodo = captura_periodo()
-    matricula = captura_matricula()
+    
+    # capturas de informação
 
+    # idade
+
+    idade = 0
+    import re
+    if 'anos' in qTemp:
+        valor = qTemp[qTemp.index('anos') - 8:qTemp.index('anos')]
+        valor = re.sub('[^0-9]', '', qTemp)
+        idade = valor
+
+    else:
+        tokens = qTemp.split(' ')
+        for token in tokens:
+            parts = re.sub('[^0-9]', '', token)
+            if 1 <= len(parts) <= 3:
+                idade = int(parts)
+
+
+    # sexo
+
+
+    sexo = ''
+    _qTemp = qTemp.replace(',', '').replace('.', '').replace(';', '').replace('!', '')
+    if ' m ' in _qTemp or 'masculino' in _qTemp:
+        sexo = 'M'
+    elif ' f ' in _qTemp or 'feminino' in _qTemp:
+        sexo = 'F'
+
+
+    # nome
+
+
+    nome = ''
+
+
+    # periodo
+
+    periodo = ''
+    if 'periodo' in qTemp:
+        valor = qTemp[qTemp.index('periodo') - 5:qTemp.index('periodo')]
+        valor = re.sub('[^0-9]', '', valor)
+
+        if valor.isnumeric():
+            periodo = int(valor)
+            if periodo > 12:
+                periodo = ''
+            else:
+                periodo = int(valor)
+
+        else:
+            valor = qTemp[qTemp.index('periodo'):qTemp.index('periodo') + 10]
+            valor = re.sub('[^0-9]', '', valor)
+            periodo = valor
+            if periodo > 12:
+                periodo =  ''
+            else:
+                periodo = int(valor)
+
+    else:
+        if 'semestre' in qTemp:
+            valor = qTemp[qTemp.index('semestre') - 5:qTemp.index('semestre')]
+            valor = re.sub('[^0-9]', '', valor)
+
+            if valor.isnumeric():
+                periodo = valor
+                if periodo > 12:
+                    periodo = ''
+                else:
+                    periodo = int(valor)
+            else:
+                valor = qTemp[qTemp.index('semestre'):qTemp.index('semestre') + 15]
+                valor = re.sub('[^0-9]', '', valor)
+                periodo = int(valor)
+                if periodo > 12:
+                    periodo =  ''
+                else:
+                    periodo = int(valor)
+
+    # matricula
+    import re
+    matricula = ''
+    if 'matricula' in qTemp:
+        valor = qTemp[qTemp.index('matricula'):qTemp.index('matricula') + 10]
+        matricula = valor
+    elif 'fc' in qTemp:
+        valor = qTemp[qTemp.index('fc'):qTemp.index('fc') + 10]
+        matricula = valor
+    else:
+        tokens = qTemp.split(' ')
+        for token in tokens:
+            parts = re.sub('[^A-Za-z0-9]', '', token)
+            if 'fc' in parts:
+                matricula = parts
+
+    # curso
+
+    curso = ''
+    cursos = ['administracao', 'agronomia', 'arquitetura e urbanismo', 'ciencias contabeis', 'direito',
+              'engenharia ambiental', 'engenharia civil', 'engenharia eletrica', 'engenharia de producao',
+              'engenharia de software', 'medicina veterinaria', 'zootecnia']
+
+    qTemp = qTemp.replace(',', '').replace('.', '').replace(';', '').replace('!', '')
+    _qTemp = qTemp.lower()
+    for x in cursos:
+        if x == _qTemp:
+            curso = x
+            break
+        else:
+            curso = ''
+
+    # buscar informações
     lista = list()
-    if len(sexo) > 0 and len(curso) > 0:
-        code = getCODE()
+    if len(nome) > 0 or len(sexo) > 0 or len(curso) > 0 or len(periodo) > 0 or len(matricula) > 0:
+        code = get_code()
         global codeUser
         code_user = codeUser
         active = 1
@@ -183,9 +287,11 @@ def questao(request, code_user, code_before, question):
             'code_before': code_before,
             'question': question,
             'input': question,
-            'output': 'Ok, entendi.'
+            'output': 'Certo!'
         })
+
     else:
+
         # controle de abreviações
         qTemp = qTemp.replace('vc', 'voce')
         qTemp = qTemp.replace('vcs', 'voces')
@@ -193,9 +299,9 @@ def questao(request, code_user, code_before, question):
         qTemp = qTemp.replace('tb', 'tambem')
         qTemp = qTemp.replace('tbm', 'tambem')
         qTemp = qTemp.replace('oq', 'o que')
-        qTemp = qTemp.replace('dq', 'de que')
         qTemp = qTemp.replace('td', 'tudo')
         qTemp = qTemp.replace('pq', 'por que')
+        qTemp = qTemp.replace('rs', 'risos')
 
         # cria uma lista com query da consulta
 
@@ -209,62 +315,63 @@ def questao(request, code_user, code_before, question):
                 'output': x.answer
             })
 
+        # remove acentuação e espaços
+        questao_recebida = unidecode(question)
+        questao_recebida.replace('?', '')
+        questao_recebida = questao_recebida.strip()
+        # coloca em minúsculas
+        questao_recebida = questao_recebida.lower()
+        temp1 = questao_recebida.split(' ')
+        temp2 = list()
+        for x in temp1:
+            temp2.append(x)
+
+        questao_recebida = ' '.join(temp2)
+        # percorre a lista de registros econtrados
+        iguais = 0
+        code = ''
+        for x in lista:
             # remove acentuação e espaços
-            questao_recebida = unidecode(question)
-            questao_recebida.replace('?', '')
-            questao_recebida = questao_recebida.strip()
+            questao_encontrada = unidecode(x['question'])
+            questao_encontrada = questao_encontrada.replace('?', '')
+            questao_encontrada = questao_encontrada.strip()
             # coloca em minúsculas
-            questao_recebida = questao_recebida.lower()
-            # elimina as três últimas letras de cada palavra com tokenização
-            temp1 = questao_recebida.split(' ')
+            questao_encontrada = questao_encontrada.lower()
+            temp1 = questao_encontrada.split(' ')
             temp2 = list()
-            for x in temp1:
-                temp2.append(x)
+            for y in temp1:
+                temp2.append(y)
 
-            questao_recebida = ' '.join(temp2)
-            # percorre a lista de registros econtrados
-            iguais = 0
-            code = ''
-            for x in lista:
-                # remove acentuação e espaços
-                questao_encontrada = unidecode(x['question'])
-                questao_encontrada = questao_encontrada.replace('?', '')
-                questao_encontrada = questao_encontrada.strip()
-                # coloca em minúsculas
-                questao_encontrada = questao_encontrada.lower()
-                # elimina as três últimas letras de cada palavra com tokenização
-                temp1 = questao_encontrada.split(' ')
-                temp2 = list()
-                for y in temp1:
-                    temp2.append(y)
+            questao_encontrada = ' '.join(temp2)
+            # cria uma lista para a questão recebida e uma para a questão encontrada
+            qrList = questao_recebida.split(' ')
+            qeList = questao_encontrada.split(' ')
+            # conta as palavras recebidas que coincidem com as palavras de cada questão encontrada
+            qtd = 0
+            for y in qrList:
+                if y in qeList:
+                    qtd += 1
 
-                questao_encontrada = ' '.join(temp2)
-                # cria uma lista para a questão recebida e uma para a questão encontrada
-                qrList = questao_recebida.split(' ')
-                qeList = questao_encontrada.split(' ')
-                # conta as palavras recebidas que coincidem com as palavras de cada questão encontrada
-                qtd = 0
-                for y in qrList:
-                    if y in qeList:
-                        qtd += 1
+            if qtd >= iguais and qtd > 0:
+                iguais = qtd
+                code = x['code_current']
 
-                if qtd >= iguais and qtd > 0:
-                    iguais = qtd
-                    code = x['code_current']
+        if iguais == 0:
+            lista = list()
+            lista.append({
+                'code_current': 0,
+                'code_user': code_user,
+                'code_before': code_before,
+                'question': question,
+                'input': question,
+                'output': 'Desculpe, poderia tentar uma forma diferente?'
+            })
 
-            if iguais == 0:
-                lista = list()
-                lista.append({
-                    'code_current': 0,
-                    'code_user': code_user,
-                    'code_before': code_before,
-                    'question': question,
-                    'input': question,
-                    'output': 'Desculpe, mas não sei informar.'
-                })
 
-            # deixa na lista somente a resposta correspondente
-            else:
+        # deixa na lista somente a resposta correspondente
+
+        else:
+            if iguais > 0:
                 correspondente = list()
                 for x in lista:
                     if code == x['code_current']:
@@ -272,140 +379,7 @@ def questao(request, code_user, code_before, question):
                         break
                 lista = correspondente
 
-        return JsonResponse(lista, safe=False)
-
-
-# capturas de informação
-# idade
-
-
-def captura_idade():
-    import re
-    global qTemp
-    idade = 0
-    if 'anos' in qTemp:
-        valor = qTemp[qTemp.index('anos') - 8:qTemp.index('anos')]
-        valor = re.sub('[^0-9]', '', qTemp)
-        idade = valor
-        return idade
-    else:
-        tokens = qTemp.split(' ')
-        for token in tokens:
-            parts = re.sub('[^0-9]', '', token)
-            if 1 <= len(parts) <= 3:
-                idade = int(parts)
-                return idade
-
-
-# sexo
-
-def captura_sexo():
-    global qTemp
-    sexo = ''
-    _qTemp = qTemp.replace(',', '').replace('.', '').replace(';', '').replace('!', '')
-    if ' m ' in _qTemp or 'masculino' in _qTemp:
-        sexo = 'M'
-        return sexo
-    elif ' f ' in _qTemp or 'feminino' in _qTemp:
-        sexo = 'F'
-        return sexo
-
-
-# nome
-
-def captura_nome():
-    global qTemp
-    nome = ''
-    return nome
-
-
-# periodo
-
-def captura_periodo():
-    import re
-    global qTemp
-    periodo = 0
-    if 'periodo' in qTemp:
-        valor = qTemp[qTemp.index('periodo') - 5:qTemp.index('periodo')]
-        valor = re.sub('[^0-9]', '', valor)
-
-        if valor.isnumeric():
-            periodo = int(valor)
-            return periodo
-        else:
-            valor = qTemp[qTemp.index('periodo'):qTemp.index('periodo') + 10]
-            valor = re.sub('[^0-9]', '', valor)
-            periodo = int(valor)
-            return periodo
-
-    elif 'semestre' in qTemp:
-        valor = qTemp[qTemp.index('semestre') - 5:qTemp.index('semestre')]
-        valor = re.sub('[^0-9]', '', valor)
-
-        if valor.isnumeric():
-            periodo = valor
-            return periodo
-        else:
-            valor = qTemp[qTemp.index('semestre'):qTemp.index('semestre') + 15]
-            valor = re.sub('[^0-9]', '', valor)
-            periodo = int(valor)
-            return periodo
-
-    else:
-        tokens = qTemp.split(' ')
-        for token in tokens:
-            parts = re.sub('[^0-9]', '', token)
-            if 1 <= len(parts) <= 2:
-                periodo = parts
-                return periodo
-            else:
-                parts = int(parts[0:2])
-                return parts
-
-
-# matricula
-
-def captura_matricula():
-    import re
-    global qTemp
-    matricula = 0
-    if 'matricula' and 'fc' in qTemp:
-        valor = qTemp[qTemp.index('fc'):qTemp.index('fc') + 10]
-        print(f'print do if {valor}')
-        matricula = valor
-        return matricula
-    elif 'fc' in qTemp:
-        valor = qTemp[qTemp.index('fc'):qTemp.index('fc') + 10]
-        print(f'print elif {valor}')
-        matricula = valor
-        return matricula
-    else:
-        tokens = qTemp.split(' ')
-        for token in tokens:
-            parts = re.sub('[^A-Za-z0-9]', '', token)
-            if 'fc' in parts:
-                matricula = parts
-                return matricula
-
-
-# curso
-
-def captura_curso():
-    global qTemp
-    curso = ''
-    cursos = ['administracao', 'agronomia', 'arquitetura e urbanismo', 'ciencias contabeis', 'direito',
-              'engenharia ambiental', 'engenharia civil', 'engenharia eletrica', 'engenharia de producao',
-              'engenharia de software', 'medicina veterinaria', 'zootecnia']
-
-    _qTemp = qTemp.replace(',', '').replace('.', '').replace(';', '').replace('!', '')
-    _qTemp = qTemp.lower()
-    for x in cursos:
-        if x == qTemp:
-            curso = x
-            return curso
-        else:
-            return ''
-
+    return JsonResponse(lista, safe=False)
 
 # buscar informações
 def api(request, code_user):

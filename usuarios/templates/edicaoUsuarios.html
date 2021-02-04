@@ -38,7 +38,7 @@
 	<br>
 	<div class="container">
 		<h2>{{titulo}}</h2>
-		<form action="/usuarios/salvarEdicao/" method="POST" name="frmUsuariosEdicao">{% csrf_token %}
+		<form action="/usuarios/salvar_edicao/" method="POST" name="frmUsuariosEdicao">{% csrf_token %}
 			<input type="hidden" name="id" value="{{usuarios.id}}">
 			<input type="hidden" name="code" value="{{usuarios.code}}">
 			<div class="form-group">

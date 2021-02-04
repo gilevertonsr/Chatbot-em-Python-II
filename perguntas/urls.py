@@ -7,9 +7,9 @@ urlpatterns = [
 	path('novo/<int:code_user>/', novo),
 	path('salvarNovo/', salvar_novo),
 	path('edicao/<int:id>/', edicao),
-	path('salvarEdicao/', salvar_edicao),
+	path('salvar_edicao/', salvar_edicao),
 	path('delecao/<int:id>/', delecao),
-	path('salvarDelecao/', salvar_delecao),
+	path('salvar_delecao/', salvar_delecao),
 	path('chatbot/<int:code_user>/', chatbot),
 	path('questao/<int:code_user>/<int:code_before>/<str:question>/', questao),
 	path('api/<int:code_user>/', api)
